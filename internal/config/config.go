@@ -31,13 +31,10 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.BindEnv("Database.Password", "DATABASE_PASSWORD")
 	viper.BindEnv("Database.Port", "DATABASE_PORT")
 	viper.BindEnv("SleepOnTaskNotFoundSec", "SLEEP_ON_TASK_NOT_FOUND_SEC")
-	viper.SetDefault("DB_PORT", kDefaultPostgresPort)
+	
+	viper.SetDefault("Database.Port", kDefaultPostgresPort)
 
-    err = viper.ReadInConfig()
-    if err != nil {
-        return
-    }
-
-    err = viper.Unmarshal(&config)
+    viper.ReadInConfig()
+    err = viper.Unmarshal(&config)	
     return
 }
