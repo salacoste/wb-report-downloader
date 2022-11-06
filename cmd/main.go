@@ -103,6 +103,7 @@ func handleTask(task task.Task, db_client postgresql.Client) {
 	reportRepository := db.NewRepository(db_client)
 	for _, rd := range reportList {
 		rd.ReportID = uint64(task.ReportID)
+		rd.SellerID = task.SellerID
 		err := reportRepository.Create(context.TODO(), &rd)
 		if err != nil {
 			log.Fatalf("Insert detailed report error: %s\n", err)
