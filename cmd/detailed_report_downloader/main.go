@@ -9,8 +9,8 @@ import (
 	"wb-report-downloader/internal/task"
 
 	"wb-report-downloader/internal/cookies/db"
-	"wb-report-downloader/internal/report"
-	"wb-report-downloader/internal/report/db"
+	"wb-report-downloader/internal/detreport"
+	"wb-report-downloader/internal/detreport/db"
 	"wb-report-downloader/internal/task/db"
 
 	"wb-report-downloader/internal/wb_request"
@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	log.Printf("Report downloader\n")
+	log.Printf("Detailed report downloader\n")
 
 	log.Printf("Reading config...")
 	c, err := config.LoadConfig(".")
@@ -84,16 +84,8 @@ func handleTask(task task.Task, db_client postgresql.Client) {
 
 	os.WriteFile("excelReport_downloaded.xlsx", excelReportBytes, 0644)
 
-	// fmt.Printf("excelReport: %v\n", string(excelReport))
-	// os.WriteFile("excelReport.xlsx", excelReport, 0644)
-
-	// excelReportBytes, err := os.ReadFile("excelReport.xlsx")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	log.Printf("Parsing xlsx...\n")
-	reportList, err := report.ParseReportDetailesXlsx(excelReportBytes)
+	report, err := detreport.ParseReportDetailesXlsx(excelReportBytes)
 	if err != nil {
 		log.Fatalf("report parsing error: %v\n", err)
 	}
@@ -101,13 +93,15 @@ func handleTask(task task.Task, db_client postgresql.Client) {
 
 	log.Printf("Saving detailed report...\n")
 	reportRepository := db.NewRepository(db_client)
-	for _, rd := range reportList {
-		rd.ReportID = uint64(task.ReportID)
-		rd.SellerID = task.SellerID
-		err := reportRepository.Create(context.TODO(), &rd)
-		if err != nil {
-			log.Fatalf("Insert detailed report error: %s\n", err)
-		}
+	for i := 0; i < report.Data.Len(); i++ {
+		reportRow := report.Data.Index(i)
+		reportRow.FieldByName("ReportID").SetInt(task.ReportID)
+		reportRow.FieldByName("SellerID").SetUint(task.SellerID)
 	}
+	err = reportRepository.Create(context.TODO(), report)
+	if err != nil {
+		log.Fatalf("Insert detailed report error: %s\n", err)
+	}
+
 	log.Printf("Saving detailed report... OK\n")
 }
