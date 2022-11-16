@@ -3,6 +3,7 @@ package detreport
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -33,6 +34,7 @@ func ParseReportDetailesXlsx(excelReportBytes []byte) (*DetailedReport, error) {
 	headers := rows[0]
 	// определяем версию отчета по заголовкам в xlsx
 	interfaceReportType, err := recognizeReportVersion(headers)
+	log.Printf("recognized report version: %T", interfaceReportType)
 	if err != nil {
 		return nil, err
 	}

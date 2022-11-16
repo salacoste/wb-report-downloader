@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 	"wb-report-downloader/internal/detreport"
 	"wb-report-downloader/pkg/client/postgresql"
@@ -32,7 +33,7 @@ func (r *repository) Create(ctx context.Context, report *detreport.DetailedRepor
 
 func makeDetailedReportInsertQuery(report *detreport.DetailedReport) (string, error) {
 	const (
-		kTableName = "wb_reports_details_test"
+		kTableName = "wb_reports_details_v2"
 	)
 
 	insert := "INSERT INTO " + kTableName
@@ -52,6 +53,8 @@ func makeDetailedReportInsertQuery(report *detreport.DetailedReport) (string, er
 	default:
 		return "", fmt.Errorf("could not convert to reflect.Slice: %s", k)
 	}
+	log.Printf("Insert query (witout values): %s", insert)
+
 	return insert + values, nil
 }
 
