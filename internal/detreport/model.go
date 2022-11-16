@@ -4,6 +4,7 @@ import "reflect"
 
 type DetailedReport struct {
 	Data reflect.Value
+	IsEmpty bool
 }
 
 var repKinds = []any{ReportRowV1{}, ReportRowV2{}, ReportRowV3{}}

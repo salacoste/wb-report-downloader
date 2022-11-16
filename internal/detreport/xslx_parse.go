@@ -27,7 +27,7 @@ func ParseReportDetailesXlsx(excelReportBytes []byte) (*DetailedReport, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not get rows from %v", kXlsxPageName)
 	}
-	if len(rows) <= 1 {
+	if len(rows) == 0 {
 		return nil, fmt.Errorf("empty report")
 	}
 
@@ -41,6 +41,9 @@ func ParseReportDetailesXlsx(excelReportBytes []byte) (*DetailedReport, error) {
 	repType := reflect.TypeOf(interfaceReportType)
 
 	data := rows[1:]
+	if len(data) == 0 {
+		return &DetailedReport{Data: reflect.Value{}, IsEmpty: true}, nil
+	}
 	return parseReportData(repType, headers, &data)
 }
 

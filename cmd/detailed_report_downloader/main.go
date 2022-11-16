@@ -61,21 +61,21 @@ func workIteration(db_client postgresql.Client) bool {
 
 	for _, task := range tasks {
 		log.Printf("Handle task. report_id: %v seller_id: %v \n", task.ReportID, task.SellerID)
-		handleTask(task, db_client)
+		handleTask(task, taskRepository, db_client)
 	}
 	return true
 }
 
-func handleTask(task task.Task, db_client postgresql.Client) {
-	log.Printf("Getting cookies for seller: %s\n", task.SellerName)
+func handleTask(taskData task.Task, taskrep task.Repository, db_client postgresql.Client) {
+	log.Printf("Getting cookies for seller: %s\n", taskData.SellerName)
 	cookiesRepository := cookiesdb.NewRepository(db_client)
-	cookies, err := cookiesRepository.GetCookies(context.TODO(), task.SellerID)
+	cookies, err := cookiesRepository.GetCookies(context.TODO(), taskData.SellerID)
 	if err != nil {
 		log.Fatalf("GetCookies: %v\n", err)
 	}
 	log.Printf("Getting cookies... OK\n")
 	log.Printf("Sending http request to wb...\n")
-	zippedExcelReport := wb_request.GetDetailedReport(uint64(task.ReportID), cookies.RawCookies)
+	zippedExcelReport := wb_request.GetDetailedReport(uint64(taskData.ReportID), cookies.RawCookies)
 	log.Printf("Response received. File size: %v\n", len(zippedExcelReport))
 
 	log.Printf("Unzipping file...\n")
@@ -91,17 +91,31 @@ func handleTask(task task.Task, db_client postgresql.Client) {
 	}
 	log.Printf("Parsing xlsx... OK\n")
 
+	if report.IsEmpty {
+		log.Printf("Empty report. Set 'empty' status and skip data saving\n")
+		taskData.Status = task.Empty
+		taskrep.UpdateTaskStatus(context.TODO(), taskData)
+		return
+	}
+
 	log.Printf("Saving detailed report...\n")
 	reportRepository := db.NewRepository(db_client)
 	for i := 0; i < report.Data.Len(); i++ {
 		reportRow := report.Data.Index(i)
-		reportRow.FieldByName("ReportID").SetUint(uint64(task.ReportID))
-		reportRow.FieldByName("SellerID").SetUint(task.SellerID)
+		reportRow.FieldByName("ReportID").SetUint(uint64(taskData.ReportID))
+		reportRow.FieldByName("SellerID").SetUint(taskData.SellerID)
 	}
 	err = reportRepository.Create(context.TODO(), report)
 	if err != nil {
 		log.Fatalf("Insert detailed report error: %s\n", err)
 	}
-
 	log.Printf("Saving detailed report... OK\n")
+
+	taskData.Status = task.Downloaded
+	log.Printf("Updating task status...\n")
+	err = taskrep.UpdateTaskStatus(context.TODO(), taskData)
+	if err != nil {
+		log.Fatalf("Could not update wb_reports.status: %v\n", taskData)
+	}
+	log.Printf("Updating task status... OK\n")
 }
