@@ -95,7 +95,7 @@ func handleTask(task task.Task, db_client postgresql.Client) {
 	reportRepository := db.NewRepository(db_client)
 	for i := 0; i < report.Data.Len(); i++ {
 		reportRow := report.Data.Index(i)
-		reportRow.FieldByName("ReportID").SetInt(task.ReportID)
+		reportRow.FieldByName("ReportID").SetUint(uint64(task.ReportID))
 		reportRow.FieldByName("SellerID").SetUint(task.SellerID)
 	}
 	err = reportRepository.Create(context.TODO(), report)
